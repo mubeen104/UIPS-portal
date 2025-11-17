@@ -6,12 +6,41 @@ import ZKLib from 'node-zklib';
 
 dotenv.config();
 
+console.log('=== Biometric Bridge Service ===\n');
+console.log('Validating configuration...');
+
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('\n❌ ERROR: Missing required environment variables:');
+  missingVars.forEach(varName => {
+    console.error(`   - ${varName}`);
+  });
+  console.error('\nPlease configure your .env file. See .env.example for reference.\n');
+  console.error('Steps to fix:');
+  console.error('1. Copy .env.example to .env: cp .env.example .env');
+  console.error('2. Edit .env and add your Supabase credentials');
+  console.error('3. Get Service Role Key from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api\n');
+  process.exit(1);
+}
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ')) {
+  console.error('\n❌ ERROR: SUPABASE_SERVICE_ROLE_KEY appears to be invalid.');
+  console.error('The key should start with "eyJ..." (it\'s a JWT token)');
+  console.error('Please check your .env file and ensure you copied the correct Service Role Key.\n');
+  process.exit(1);
+}
+
+console.log('✓ Configuration validated\n');
+
 const app = express();
 const PORT = process.env.BRIDGE_PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
+console.log('Connecting to Supabase...');
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -19,10 +48,12 @@ const supabase = createClient(
 
 const deviceConnections = new Map();
 
-console.log('Biometric Bridge Service Starting...');
-console.log('Environment:', process.env.NODE_ENV || 'development');
-console.log(`Port: ${PORT}`);
-console.log('ZKTeco SDK: node-zklib loaded\n');
+console.log('✓ Supabase client initialized');
+console.log('\nService Configuration:');
+console.log('  Environment:', process.env.NODE_ENV || 'development');
+console.log(`  Port: ${PORT}`);
+console.log('  Supabase URL:', process.env.SUPABASE_URL);
+console.log('  ZKTeco SDK: node-zklib v1.3.0 loaded\n');
 
 app.get('/health', (req, res) => {
   res.json({
@@ -592,11 +623,33 @@ function getFingerPosition(fingerIndex) {
   return positions[fingerIndex] || 'right_index';
 }
 
-app.listen(PORT, () => {
-  console.log(`\n✓ Biometric Bridge Service running on port ${PORT}`);
-  console.log(`✓ ZKTeco SDK: node-zklib enabled`);
-  console.log(`✓ Health check: http://localhost:${PORT}/health`);
-  console.log('\nWaiting for device communication requests...\n');
+const server = app.listen(PORT, () => {
+  console.log('\n' + '='.repeat(60));
+  console.log('✓ BRIDGE SERVICE READY');
+  console.log('='.repeat(60));
+  console.log(`\n  Status: Running`);
+  console.log(`  Port: ${PORT}`);
+  console.log(`  Health Check: http://localhost:${PORT}/health`);
+  console.log(`  ZKTeco SDK: Enabled (node-zklib v1.3.0)`);
+  console.log(`\n  Active Connections: ${deviceConnections.size}`);
+  console.log(`\n  Ready to communicate with fingerprint devices!`);
+  console.log('  Waiting for requests...\n');
+  console.log('  Press Ctrl+C to stop the service\n');
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ ERROR: Port ${PORT} is already in use.`);
+    console.error('\nSolutions:');
+    console.error('1. Stop the process using this port:');
+    console.error(`   lsof -i :${PORT}`);
+    console.error('   kill -9 <PID>');
+    console.error('\n2. Or change the port in your .env file:');
+    console.error('   BRIDGE_PORT=3002\n');
+    process.exit(1);
+  } else {
+    console.error('\n❌ ERROR: Failed to start bridge service:');
+    console.error(err.message);
+    process.exit(1);
+  }
 });
 
 process.on('SIGTERM', () => {
