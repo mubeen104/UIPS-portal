@@ -48,7 +48,7 @@ interface PayslipRecord {
 }
 
 export function EmployeeDetails({ userId, onClose }: EmployeeDetailsProps) {
-  const { currency } = usePreferences();
+  const { formatCurrency: formatCurrencyPref } = usePreferences();
   const [loading, setLoading] = useState(true);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
@@ -197,14 +197,7 @@ export function EmployeeDetails({ userId, onClose }: EmployeeDetailsProps) {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = formatCurrencyPref;
 
   if (loading) {
     return (
