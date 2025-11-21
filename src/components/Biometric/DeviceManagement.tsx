@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConnectionGuide } from './ConnectionGuide';
+import { DeviceSetupWizard } from './DeviceSetupWizard';
 
 interface DeviceProtocol {
   id: string;
@@ -55,12 +56,13 @@ export function DeviceManagement() {
   const [protocols, setProtocols] = useState<DeviceProtocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [editingDevice, setEditingDevice] = useState<BiometricDevice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [scanning, setScanning] = useState(false);
   const [detectedDevices, setDetectedDevices] = useState<any[]>([]);
   const [showGuide, setShowGuide] = useState(false);
-  const { showToast } = useToast();
+  const { showToast} = useToast();
 
   const [formData, setFormData] = useState({
     device_name: '',
@@ -519,20 +521,35 @@ export function DeviceManagement() {
           </button>
           <button
             onClick={() => {
-              setShowForm(true);
+              setShowWizard(true);
               setEditingDevice(null);
               resetForm();
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             <Plus className="w-5 h-5" />
-            Add Device
+            Add Device (Easy Setup)
           </button>
         </div>
       </div>
 
       {showGuide && (
         <ConnectionGuide deviceProtocol="tcp" connectionType="network" />
+      )}
+
+      {showWizard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full">
+            <DeviceSetupWizard
+              onComplete={() => {
+                setShowWizard(false);
+                fetchDevices();
+                showToast('Device added successfully!', 'success');
+              }}
+              onCancel={() => setShowWizard(false)}
+            />
+          </div>
+        </div>
       )}
 
       {detectedDevices.length > 0 && (
