@@ -89,3 +89,50 @@
     @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
   }
 }
+
+/* PWA Safe Area Support */
+body {
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+/* Touch-friendly min tap target size */
+@supports (min-height: 1dvh) {
+  button, input, [role="button"], [role="link"] {
+    min-height: 3rem; /* 48px minimum touch target */
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+input, textarea, select {
+  font-size: 16px;
+  -webkit-user-select: text;
+}
+
+/* Smooth appearance animations */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Ensure proper rendering on notched devices */
+@supports(padding: max(0px)) {
+  body {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}

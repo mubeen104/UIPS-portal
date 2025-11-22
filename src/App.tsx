@@ -18,6 +18,9 @@ import { NotificationCenter } from './components/Notifications/NotificationCente
 import { UserSettings } from './components/Settings/UserSettings';
 import { Toast } from './components/UI/Toast';
 import { useToast } from './hooks/useToast';
+import { isConfigured } from './lib/supabase-client';
+import SetupPage from './pages/setup';
+import { PWAInstallBanner } from './components/PWA/PWAInstallBanner';
 
 interface ToastContextType {
   success: (message: string) => void;
@@ -40,6 +43,10 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { toasts, removeToast, success, error, info } = useToast();
+
+  if (!isConfigured) {
+    return <SetupPage />;
+  }
 
   if (loading) {
     return (
@@ -98,7 +105,7 @@ function AppContent() {
           mobileMenuOpen={mobileMenuOpen}
           onMobileMenuToggle={setMobileMenuOpen}
         />
-        <main className="flex-1 overflow-y-auto w-full lg:mt-0 mt-14">
+        <main className="flex-1 overflow-y-auto w-full lg:mt-0 mt-14 pb-20 sm:pb-0">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 pb-safe">
             {renderView()}
           </div>
@@ -111,6 +118,7 @@ function AppContent() {
             onClose={() => removeToast(toast.id)}
           />
         ))}
+        <PWAInstallBanner />
       </div>
     </ToastContext.Provider>
   );
