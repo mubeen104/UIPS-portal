@@ -1,11 +1,58 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Copy PWA files to dist
+    {
+      name: 'pwa-files',
+      apply: 'build',
+      enforce: 'post',
+      generateBundle() {
+        const publicDir = path.resolve(__dirname, 'public');
+        const files = ['manifest.json', 'offline.html'];
+
+        files.forEach((file) => {
+          const filePath = path.join(publicDir, file);
+          if (fs.existsSync(filePath)) {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            this.emitFile({
+              type: 'asset',
+              fileName: file,
+              source: content,
+            });
+          }
+        });
+      },
+    },
+    // Emit service worker
+    {
+      name: 'service-worker',
+      apply: 'build',
+      enforce: 'post',
+      generateBundle() {
+        const swPath = path.resolve(__dirname, 'dist', 'service-worker.js');
+        // Service worker will be built by Vite's TS compilation
+      },
+    },
+  ],
   optimizeDeps: {
     include: ['lucide-react'],
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        sw: path.resolve(__dirname, 'src/service-worker.ts'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+      },
+    },
   },
   server: {
     host: '0.0.0.0',
