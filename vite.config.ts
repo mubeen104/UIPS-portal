@@ -29,16 +29,7 @@ export default defineConfig({
         });
       },
     },
-    // Emit service worker
-    {
-      name: 'service-worker',
-      apply: 'build',
-      enforce: 'post',
-      generateBundle() {
-        const swPath = path.resolve(__dirname, 'dist', 'service-worker.js');
-        // Service worker will be built by Vite's TS compilation
-      },
-    },
+    // Service worker will be built by Vite's TS compilation
   ],
   optimizeDeps: {
     include: ['lucide-react'],
