@@ -18,7 +18,7 @@ import { NotificationCenter } from './components/Notifications/NotificationCente
 import { UserSettings } from './components/Settings/UserSettings';
 import { Toast } from './components/UI/Toast';
 import { useToast } from './hooks/useToast';
-import { isConfigured } from './lib/supabase-client';
+import { isConfigured } from './lib/supabase';
 import SetupPage from './pages/setup';
 import { PWAInstallBanner } from './components/PWA/PWAInstallBanner';
 
