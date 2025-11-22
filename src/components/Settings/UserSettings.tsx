@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, User, Bell, Globe, Moon, Sun, Save, Lock, Shield, Download, Trash2, Eye, EyeOff, Smartphone, Mail, Key, LogOut, Monitor, AlertTriangle } from 'lucide-react';
+import { Settings, User, Bell, Globe, Moon, Sun, Save, Lock, Shield, Download, Trash2, Eye, EyeOff, Smartphone, Mail, Key, LogOut, Monitor, AlertTriangle, Activity, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
@@ -25,6 +25,15 @@ interface Session {
   created_at: string;
 }
 
+interface ActivityLog {
+  id: string;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  changes: any;
+  created_at: string;
+}
+
 export function UserSettings() {
   const { profile, signOut } = useAuth();
   const { refreshPreferences } = usePreferences();
@@ -33,6 +42,7 @@ export function UserSettings() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
   const [profileData, setProfileData] = useState({
     full_name: '',
@@ -84,6 +94,7 @@ export function UserSettings() {
       loadUserData();
       loadPreferences();
       loadSessions();
+      loadActivityLogs();
     }
   }, [profile?.id]);
 
@@ -159,6 +170,22 @@ export function UserSettings() {
       setSessions(data || []);
     } catch (error) {
       console.error('Error loading sessions:', error);
+    }
+  };
+
+  const loadActivityLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('user_id', profile?.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setActivityLogs(data || []);
+    } catch (error) {
+      console.error('Error loading activity logs:', error);
     }
   };
 
@@ -376,8 +403,24 @@ export function UserSettings() {
     { id: 'preferences', label: 'Preferences', icon: Settings },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'sessions', label: 'Sessions', icon: Monitor },
+    { id: 'activity', label: 'Activity Logs', icon: Activity },
     { id: 'privacy', label: 'Privacy & Data', icon: Lock },
   ];
+
+  const getActionColor = (action: string) => {
+    switch (action.toLowerCase()) {
+      case 'create': return 'text-green-600 bg-green-50';
+      case 'update': return 'text-blue-600 bg-blue-50';
+      case 'delete': return 'text-red-600 bg-red-50';
+      case 'login': return 'text-purple-600 bg-purple-50';
+      case 'logout': return 'text-gray-600 bg-gray-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const formatResourceType = (type: string) => {
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
 
   if (loading) {
     return (
@@ -816,6 +859,63 @@ export function UserSettings() {
                   ))
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-6 max-w-4xl">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-1">Activity Logs</h3>
+                <p className="text-sm text-gray-600 mb-4">View your recent account activities and actions</p>
+              </div>
+
+              <div className="space-y-2">
+                {activityLogs.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <Activity className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No activity logs found</p>
+                  </div>
+                ) : (
+                  activityLogs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                      <div className="flex-shrink-0">
+                        <div className={`p-2 rounded-lg ${getActionColor(log.action)}`}>
+                          <Activity className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-800">
+                              <span className="capitalize">{log.action}</span> {formatResourceType(log.resource_type)}
+                            </p>
+                            {log.resource_id && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                ID: {log.resource_id.substring(0, 8)}...
+                              </p>
+                            )}
+                            {log.changes && (
+                              <div className="text-xs text-gray-500 mt-2 p-2 bg-white rounded border border-gray-200 font-mono overflow-x-auto">
+                                {JSON.stringify(log.changes, null, 2)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-gray-500 whitespace-nowrap">
+                            <Clock className="w-4 h-4" />
+                            <span>{new Date(log.created_at).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {activityLogs.length > 0 && (
+                <p className="text-xs text-gray-500 text-center">
+                  Showing the last 50 activities
+                </p>
+              )}
             </div>
           )}
 

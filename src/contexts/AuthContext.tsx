@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, isConfigured } from '../lib/supabase';
+import { logActivity, trackSession } from '../lib/activityLogger';
 
 interface UserProfile {
   id: string;
@@ -125,10 +126,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: new Error('Supabase not configured') };
     }
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (!error && data.user) {
+        await trackSession(data.user.id);
+        await logActivity({
+          userId: data.user.id,
+          action: 'login',
+          resourceType: 'auth',
+          resourceId: data.user.id,
+        });
+      }
+
       return { error };
     } catch (error) {
       return { error };
@@ -168,6 +180,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return;
+
+    if (user?.id) {
+      await logActivity({
+        userId: user.id,
+        action: 'logout',
+        resourceType: 'auth',
+        resourceId: user.id,
+      });
+    }
+
     await supabase.auth.signOut();
     setProfile(null);
   };
